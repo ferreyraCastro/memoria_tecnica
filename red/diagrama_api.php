@@ -26,9 +26,21 @@ try {
     switch ($accion) {
 
         case 'listar': {
-            $nodos = $db->query('SELECT * FROM red_nodos ORDER BY id')->fetchAll();
+            $nodos = $db->query("
+                SELECT rn.*, e.nombre_pc AS eq_nombre, e.ip AS eq_ip, e.tipo_conexion AS eq_tipo_conexion,
+                       e.aula AS eq_aula, e.piso AS eq_piso, e.sala AS eq_sala, e.usuario_asignado AS eq_usuario,
+                       e.estado AS eq_estado, e.anydesk_id AS eq_anydesk
+                FROM red_nodos rn
+                LEFT JOIN equipos e ON e.id = rn.equipo_id
+                ORDER BY rn.id
+            ")->fetchAll();
             $conexiones = $db->query('SELECT * FROM red_conexiones ORDER BY id')->fetchAll();
             jsonOut(['ok' => true, 'nodos' => $nodos, 'conexiones' => $conexiones]);
+        }
+
+        case 'equipos_disponibles': {
+            $equipos = $db->query("SELECT id, nombre_pc, ip, tipo_conexion, aula, piso, sala, estado FROM equipos ORDER BY nombre_pc")->fetchAll();
+            jsonOut(['ok' => true, 'equipos' => $equipos]);
         }
 
         case 'crear_nodo': {
@@ -36,7 +48,8 @@ try {
             $nombre = trim($_POST['nombre'] ?? '');
             if ($nombre === '') jsonOut(['ok' => false, 'error' => 'El nombre es obligatorio.'], 422);
             $numPuertos = max(1, (int)($_POST['num_puertos'] ?? 1));
-            $stmt = $db->prepare("INSERT INTO red_nodos (tipo, nombre, subtitulo, ip, grupo, info_extra, num_puertos, pos_x, pos_y) VALUES (?,?,?,?,?,?,?,?,?)");
+            $equipoId = !empty($_POST['equipo_id']) ? (int)$_POST['equipo_id'] : null;
+            $stmt = $db->prepare("INSERT INTO red_nodos (tipo, nombre, subtitulo, ip, grupo, info_extra, num_puertos, pos_x, pos_y, equipo_id) VALUES (?,?,?,?,?,?,?,?,?,?)");
             $stmt->execute([
                 $tipo, $nombre,
                 trim($_POST['subtitulo'] ?? '') ?: null,
@@ -46,9 +59,15 @@ try {
                 $numPuertos,
                 (int)($_POST['pos_x'] ?? 100),
                 (int)($_POST['pos_y'] ?? 100),
+                $equipoId,
             ]);
             $id = (int)$db->lastInsertId();
-            $nodo = $db->query('SELECT * FROM red_nodos WHERE id = ' . $id)->fetch();
+            $nodo = $db->query("
+                SELECT rn.*, e.nombre_pc AS eq_nombre, e.ip AS eq_ip, e.tipo_conexion AS eq_tipo_conexion,
+                       e.aula AS eq_aula, e.piso AS eq_piso, e.sala AS eq_sala, e.usuario_asignado AS eq_usuario,
+                       e.estado AS eq_estado, e.anydesk_id AS eq_anydesk
+                FROM red_nodos rn LEFT JOIN equipos e ON e.id = rn.equipo_id WHERE rn.id = $id
+            ")->fetch();
             jsonOut(['ok' => true, 'nodo' => $nodo]);
         }
 
@@ -57,16 +76,23 @@ try {
             $nombre = trim($_POST['nombre'] ?? '');
             if (!$id || $nombre === '') jsonOut(['ok' => false, 'error' => 'Datos incompletos.'], 422);
             $numPuertos = max(1, (int)($_POST['num_puertos'] ?? 1));
-            $stmt = $db->prepare("UPDATE red_nodos SET tipo=?, nombre=?, subtitulo=?, ip=?, grupo=?, info_extra=?, num_puertos=? WHERE id=?");
+            $equipoId = !empty($_POST['equipo_id']) ? (int)$_POST['equipo_id'] : null;
+            $stmt = $db->prepare("UPDATE red_nodos SET tipo=?, nombre=?, subtitulo=?, ip=?, grupo=?, info_extra=?, num_puertos=?, equipo_id=? WHERE id=?");
             $stmt->execute([
                 $_POST['tipo'] ?? 'otro', $nombre,
                 trim($_POST['subtitulo'] ?? '') ?: null,
                 trim($_POST['ip'] ?? '') ?: null,
                 trim($_POST['grupo'] ?? '') ?: null,
                 trim($_POST['info_extra'] ?? '') ?: null,
-                $numPuertos, $id,
+                $numPuertos, $equipoId, $id,
             ]);
-            jsonOut(['ok' => true]);
+            $nodo = $db->query("
+                SELECT rn.*, e.nombre_pc AS eq_nombre, e.ip AS eq_ip, e.tipo_conexion AS eq_tipo_conexion,
+                       e.aula AS eq_aula, e.piso AS eq_piso, e.sala AS eq_sala, e.usuario_asignado AS eq_usuario,
+                       e.estado AS eq_estado, e.anydesk_id AS eq_anydesk
+                FROM red_nodos rn LEFT JOIN equipos e ON e.id = rn.equipo_id WHERE rn.id = $id
+            ")->fetch();
+            jsonOut(['ok' => true, 'nodo' => $nodo]);
         }
 
         case 'mover_nodo': {

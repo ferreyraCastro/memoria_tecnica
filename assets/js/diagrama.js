@@ -22,6 +22,7 @@
 
   let nodos = {};       // id -> {data, el}
   let conexiones = {};  // id -> data
+  let equiposDisponibles = []; // cache de Equipos/PCs para vincular
   let scale = 1;
   let dragState = null;
   let connectState = null;
@@ -61,11 +62,31 @@
     div.style.top = (nodo.pos_y || 0) + 'px';
     div.dataset.id = nodo.id;
 
+    const vinculado = !!nodo.equipo_id;
+    const nombreMostrar = (vinculado && nodo.eq_nombre) ? nodo.eq_nombre : nodo.nombre;
+    const subMostrar = vinculado
+      ? [nodo.eq_piso, nodo.eq_aula || nodo.eq_sala].filter(Boolean).join(' · ')
+      : nodo.subtitulo;
+
     const detalles = [];
-    if (nodo.subtitulo) detalles.push(nodo.subtitulo);
-    if (nodo.ip) detalles.push('IP: ' + nodo.ip);
-    if (nodo.grupo) detalles.push(nodo.grupo);
+    if (vinculado) {
+      if (nodo.eq_ip) detalles.push('IP: ' + nodo.eq_ip);
+      if (nodo.eq_usuario) detalles.push(nodo.eq_usuario);
+      if (nodo.eq_anydesk) detalles.push('AnyDesk: ' + nodo.eq_anydesk);
+    } else {
+      if (nodo.ip) detalles.push('IP: ' + nodo.ip);
+      if (nodo.grupo) detalles.push(nodo.grupo);
+    }
     if (nodo.info_extra) detalles.push(nodo.info_extra);
+
+    let conexionBadge = '';
+    if (vinculado && nodo.eq_tipo_conexion) {
+      const esWifi = nodo.eq_tipo_conexion === 'wifi';
+      conexionBadge = `<span class="badge-conexion ${esWifi ? 'badge-wifi' : 'badge-eth'}"><i class="bi ${esWifi ? 'bi-wifi' : 'bi-ethernet'}"></i> ${esWifi ? 'Wi-Fi' : 'Cableada'}</span>`;
+    }
+    const vinculoIcono = vinculado
+      ? `<a href="../equipos/ver.php?id=${nodo.equipo_id}" target="_blank" class="nodo-red-vinculo" title="Ver equipo en el inventario"><i class="bi bi-link-45deg"></i></a>`
+      : '';
 
     let puertosHtml = '';
     const n = Math.max(1, parseInt(nodo.num_puertos || 1));
@@ -77,11 +98,13 @@
       <div class="nodo-red-header">
         <div class="nodo-red-icono ${info.badge}"><i class="bi ${info.icono}"></i></div>
         <div class="flex-grow-1 overflow-hidden">
-          <div class="nodo-red-titulo">${escapeHtml(nodo.nombre)}</div>
-          ${nodo.subtitulo ? `<div class="nodo-red-sub">${escapeHtml(nodo.subtitulo)}</div>` : ''}
+          <div class="nodo-red-titulo">${escapeHtml(nombreMostrar)}</div>
+          ${subMostrar ? `<div class="nodo-red-sub">${escapeHtml(subMostrar)}</div>` : ''}
         </div>
+        ${vinculoIcono}
         ${PUEDE_EDITAR ? `<button type="button" class="nodo-red-editar" title="Editar"><i class="bi bi-pencil"></i></button>` : ''}
       </div>
+      ${conexionBadge ? `<div class="px-2 pt-1">${conexionBadge}</div>` : ''}
       ${detalles.length ? `<div class="nodo-red-body">${detalles.map(d => `<div>${escapeHtml(d)}</div>`).join('')}</div>` : ''}
       <div class="nodo-red-puertos">${puertosHtml}</div>
     `;
@@ -165,6 +188,7 @@
                 nodo_destino_id: nodoDestino, puerto_destino: puertoDestNum,
               };
               redrawConexiones();
+              actualizarEstadoPuertos();
             }
           });
         }
@@ -185,6 +209,12 @@
     connectState = { nodoOrigen: el.dataset.nodo, puertoOrigen: el.dataset.puerto, origen, ghost };
   }
 
+  function resaltarPuertosDeConexion(c, activar) {
+    const pOrigen = canvas.querySelector(`.puerto-red[data-nodo="${c.nodo_origen_id}"][data-puerto="${c.puerto_origen}"]`);
+    const pDestino = canvas.querySelector(`.puerto-red[data-nodo="${c.nodo_destino_id}"][data-puerto="${c.puerto_destino}"]`);
+    [pOrigen, pDestino].forEach(p => { if (p) p.classList.toggle('puerto-resaltado', activar); });
+  }
+
   function redrawConexiones() {
     svg.querySelectorAll('.conexion-linea').forEach(l => l.remove());
     Object.values(conexiones).forEach(c => {
@@ -197,7 +227,9 @@
       path.setAttribute('class', 'conexion-linea');
       path.setAttribute('d', `M ${a.x},${a.y} L ${b.x},${b.y}`);
       path.dataset.id = c.id;
-      path.style.pointerEvents = PUEDE_EDITAR ? 'stroke' : 'none';
+      path.style.pointerEvents = 'stroke';
+      path.addEventListener('mouseenter', () => resaltarPuertosDeConexion(c, true));
+      path.addEventListener('mouseleave', () => resaltarPuertosDeConexion(c, false));
       if (PUEDE_EDITAR) {
         path.addEventListener('click', () => {
           Swal.fire({
@@ -210,7 +242,7 @@
           }).then(res => {
             if (res.isConfirmed) {
               ajax('eliminar_conexion', { id: c.id }).then(r => {
-                if (r.ok) { delete conexiones[c.id]; redrawConexiones(); }
+                if (r.ok) { delete conexiones[c.id]; redrawConexiones(); actualizarEstadoPuertos(); }
               });
             }
           });
@@ -220,9 +252,61 @@
     });
   }
 
+  // ---------- Estado de puertos (conectado / libre) ----------
+  function nombreVisibleNodo(data) {
+    if (!data) return '?';
+    return (data.equipo_id && data.eq_nombre) ? data.eq_nombre : data.nombre;
+  }
+
+  function actualizarEstadoPuertos() {
+    const mapa = {};
+    Object.values(conexiones).forEach(c => {
+      mapa[c.nodo_origen_id + ':' + c.puerto_origen] = { nodoId: c.nodo_destino_id, puerto: c.puerto_destino };
+      mapa[c.nodo_destino_id + ':' + c.puerto_destino] = { nodoId: c.nodo_origen_id, puerto: c.puerto_origen };
+    });
+    canvas.querySelectorAll('.puerto-red').forEach(p => {
+      const nodoId = p.dataset.nodo;
+      const puerto = p.dataset.puerto;
+      const conex = mapa[nodoId + ':' + puerto];
+      if (conex) {
+        const otro = nodos[conex.nodoId];
+        p.classList.add('puerto-conectado');
+        p.title = `Puerto ${puerto} — conectado a: ${nombreVisibleNodo(otro && otro.data)} (puerto ${conex.puerto})`;
+      } else {
+        p.classList.remove('puerto-conectado');
+        p.title = `Puerto ${puerto} — sin conexión`;
+      }
+    });
+  }
+
   // ---------- Modal de nodo ----------
   const modalEl = document.getElementById('modalNodo');
   const modal = modalEl ? new bootstrap.Modal(modalEl) : null;
+  const selEquipo = document.getElementById('nodoEquipoId');
+  const grupoVinculo = document.getElementById('grupoVinculoEquipo');
+
+  function poblarSelectEquipos() {
+    if (!selEquipo) return;
+    selEquipo.innerHTML = '<option value="">— Sin vincular —</option>' + equiposDisponibles.map(e => {
+      const ubic = [e.piso, e.aula || e.sala].filter(Boolean).join(' · ');
+      const conexion = e.tipo_conexion === 'wifi' ? 'Wi-Fi' : 'Cableada';
+      return `<option value="${e.id}">${escapeHtml(e.nombre_pc)}${ubic ? ' — ' + escapeHtml(ubic) : ''} (${conexion})</option>`;
+    }).join('');
+  }
+
+  function actualizarVisibilidadVinculo() {
+    if (!grupoVinculo) return;
+    const tipo = document.getElementById('nodoTipo').value;
+    grupoVinculo.classList.toggle('d-none', tipo !== 'pc');
+  }
+  document.getElementById('nodoTipo')?.addEventListener('change', actualizarVisibilidadVinculo);
+  selEquipo?.addEventListener('change', function () {
+    if (!this.value) return;
+    const eq = equiposDisponibles.find(e => String(e.id) === this.value);
+    if (eq && !document.getElementById('nodoNombre').value.trim()) {
+      document.getElementById('nodoNombre').value = eq.nombre_pc;
+    }
+  });
 
   window.abrirModalNodoNuevo = function (tipo) {
     document.getElementById('nodoId').value = '';
@@ -233,6 +317,8 @@
     document.getElementById('nodoGrupo').value = '';
     document.getElementById('nodoInfoExtra').value = '';
     document.getElementById('nodoNumPuertos').value = (TIPOS[tipo] || TIPOS.otro).puertos;
+    if (selEquipo) selEquipo.value = '';
+    actualizarVisibilidadVinculo();
     document.getElementById('btnEliminarNodo').classList.add('d-none');
     document.getElementById('modalNodoTitulo').textContent = 'Nuevo dispositivo';
     modal.show();
@@ -248,6 +334,8 @@
     document.getElementById('nodoGrupo').value = nodo.grupo || '';
     document.getElementById('nodoInfoExtra').value = nodo.info_extra || '';
     document.getElementById('nodoNumPuertos').value = nodo.num_puertos || 1;
+    if (selEquipo) selEquipo.value = nodo.equipo_id || '';
+    actualizarVisibilidadVinculo();
     document.getElementById('btnEliminarNodo').classList.remove('d-none');
     document.getElementById('modalNodoTitulo').textContent = 'Editar dispositivo';
     modal.show();
@@ -264,6 +352,7 @@
       grupo: document.getElementById('nodoGrupo').value.trim(),
       info_extra: document.getElementById('nodoInfoExtra').value.trim(),
       num_puertos: document.getElementById('nodoNumPuertos').value,
+      equipo_id: selEquipo ? selEquipo.value : '',
     };
     if (!payload.nombre) return;
 
@@ -271,15 +360,16 @@
       payload.id = id;
       ajax('editar_nodo', payload).then(res => {
         if (res.ok) {
-          Object.assign(nodos[id].data, payload);
           const oldEl = nodos[id].el;
           const left = oldEl.style.left, top = oldEl.style.top;
           oldEl.remove();
-          nodos[id].data.pos_x = parseFloat(left);
-          nodos[id].data.pos_y = parseFloat(top);
-          const el = crearNodoDOM(nodos[id].data);
+          const nodoActualizado = res.nodo || Object.assign(nodos[id].data, payload);
+          nodoActualizado.pos_x = parseFloat(left);
+          nodoActualizado.pos_y = parseFloat(top);
+          const el = crearNodoDOM(nodoActualizado);
           el.style.left = left; el.style.top = top;
           redrawConexiones();
+          actualizarEstadoPuertos();
           modal.hide();
         }
       });
@@ -290,6 +380,7 @@
       ajax('crear_nodo', payload).then(res => {
         if (res.ok) {
           crearNodoDOM(res.nodo);
+          actualizarEstadoPuertos();
           modal.hide();
         }
       });
@@ -318,6 +409,7 @@
               if (String(c.nodo_origen_id) === String(id) || String(c.nodo_destino_id) === String(id)) delete conexiones[cid];
             });
             redrawConexiones();
+            actualizarEstadoPuertos();
             modal.hide();
           }
         });
@@ -339,11 +431,85 @@
     redrawConexiones();
   };
 
+  // ---------- Exportar a PDF ----------
+  window.exportarPDFDiagrama = async function () {
+    const nodeEls = Array.from(document.querySelectorAll('.nodo-red'));
+    if (!nodeEls.length) { Swal.fire('No hay dispositivos para exportar.'); return; }
+    if (typeof html2canvas === 'undefined' || !window.jspdf) {
+      Swal.fire('error', 'No se pudieron cargar las librerías de exportación. Verificá tu conexión a internet.', 'error');
+      return;
+    }
+
+    const prevScale = scale;
+    if (scale !== 1) { window.zoomResetDiagrama(); await new Promise(r => setTimeout(r, 80)); }
+
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    nodeEls.forEach(el => {
+      const l = el.offsetLeft, t = el.offsetTop, w = el.offsetWidth, h = el.offsetHeight;
+      minX = Math.min(minX, l); minY = Math.min(minY, t);
+      maxX = Math.max(maxX, l + w); maxY = Math.max(maxY, t + h);
+    });
+    const pad = 60;
+    minX = Math.max(0, minX - pad); minY = Math.max(0, minY - pad);
+    maxX += pad; maxY += pad;
+    const boxW = Math.round(maxX - minX), boxH = Math.round(maxY - minY);
+
+    Swal.fire({ title: 'Generando PDF...', text: 'Puede tardar unos segundos', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+    try {
+      const RENDER_SCALE = 1.5;
+      const fullShot = await html2canvas(canvas, {
+        backgroundColor: '#ffffff', scale: RENDER_SCALE,
+        width: canvas.scrollWidth, height: canvas.scrollHeight,
+      });
+
+      const cropCanvas = document.createElement('canvas');
+      cropCanvas.width = boxW * RENDER_SCALE;
+      cropCanvas.height = boxH * RENDER_SCALE;
+      const ctx = cropCanvas.getContext('2d');
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, cropCanvas.width, cropCanvas.height);
+      ctx.drawImage(
+        fullShot,
+        minX * RENDER_SCALE, minY * RENDER_SCALE, boxW * RENDER_SCALE, boxH * RENDER_SCALE,
+        0, 0, cropCanvas.width, cropCanvas.height
+      );
+
+      const imgData = cropCanvas.toDataURL('image/png');
+      const { jsPDF } = window.jspdf;
+      const mmW = boxW * 25.4 / 96;
+      const mmH = boxH * 25.4 / 96;
+      const margin = 12;
+      const orientation = mmW >= mmH ? 'l' : 'p';
+      const doc = new jsPDF({ orientation, unit: 'mm', format: [mmW + margin * 2, mmH + margin * 2 + 8] });
+      doc.setFontSize(11);
+      doc.text('Diagrama de red — Colegio San José', margin, margin - 2);
+      doc.addImage(imgData, 'PNG', margin, margin + 6, mmW, mmH);
+      doc.save('diagrama-red-colegio-san-jose.pdf');
+      Swal.close();
+    } catch (err) {
+      Swal.fire('error', 'No se pudo generar el PDF: ' + err.message, 'error');
+    } finally {
+      if (prevScale !== 1) {
+        scale = prevScale;
+        canvas.style.transform = `scale(${scale})`;
+        document.getElementById('zoomLabel').textContent = Math.round(scale * 100) + '%';
+        redrawConexiones();
+      }
+    }
+  };
+
   // ---------- Carga inicial ----------
+  if (PUEDE_EDITAR) {
+    ajax('equipos_disponibles').then(res => {
+      if (res.ok) { equiposDisponibles = res.equipos; poblarSelectEquipos(); }
+    });
+  }
   ajax('listar').then(res => {
     if (!res.ok) return;
     res.nodos.forEach(n => crearNodoDOM(n));
     res.conexiones.forEach(c => { conexiones[c.id] = c; });
     redrawConexiones();
+    actualizarEstadoPuertos();
   });
 })();

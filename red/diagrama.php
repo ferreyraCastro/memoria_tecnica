@@ -5,7 +5,8 @@ require_once __DIR__ . '/../includes/auth.php';
 requireLogin();
 
 $pageTitle = 'Diagrama de red';
-$extraHead = '<link href="' . baseUrl() . 'assets/css/diagrama.css" rel="stylesheet">';
+$verCss = @filemtime(__DIR__ . '/../assets/css/diagrama.css') ?: time();
+$extraHead = '<link href="' . baseUrl() . 'assets/css/diagrama.css?v=' . $verCss . '" rel="stylesheet">';
 require_once __DIR__ . '/../includes/header.php';
 require_once __DIR__ . '/../includes/layout_start.php';
 ?>
@@ -46,6 +47,7 @@ require_once __DIR__ . '/../includes/layout_start.php';
         <button class="btn btn-outline-secondary" id="zoomLabel" onclick="zoomResetDiagrama()" style="min-width:60px;">100%</button>
         <button class="btn btn-outline-secondary" onclick="zoomDiagrama(0.1)" title="Acercar"><i class="bi bi-plus-lg"></i></button>
       </div>
+      <button class="btn btn-outline-secondary" onclick="exportarPDFDiagrama()"><i class="bi bi-file-earmark-pdf"></i> Exportar a PDF</button>
       <div class="text-secondary small ms-auto">
         <?php if (canEdit()): ?>
           <i class="bi bi-info-circle"></i> Arrastrá un dispositivo para moverlo. Arrastrá desde un puerto (círculo) hasta otro puerto para conectar. Hacé clic en una línea para borrarla.
@@ -64,6 +66,8 @@ require_once __DIR__ . '/../includes/layout_start.php';
       <span><i class="bi bi-square-fill text-secondary"></i> Impresora</span>
       <span><i class="bi bi-square-fill text-danger"></i> Cámara</span>
       <span><i class="bi bi-square-fill" style="color:#1e293b"></i> Servidor</span>
+      <span class="ms-3"><i class="bi bi-circle-fill" style="color:#059669"></i> Puerto conectado</span>
+      <span><i class="bi bi-circle-fill" style="color:#94a3b8"></i> Puerto libre</span>
     </div>
 
     <div class="diagrama-viewport" id="diagramaViewport">
@@ -110,6 +114,13 @@ require_once __DIR__ . '/../includes/layout_start.php';
               <label class="form-label fw-semibold">Nombre *</label>
               <input type="text" id="nodoNombre" class="form-control" required placeholder="Ej: PC - Secretaría">
             </div>
+            <div class="col-12 d-none" id="grupoVinculoEquipo">
+              <label class="form-label fw-semibold"><i class="bi bi-link-45deg"></i> Vincular con equipo del inventario</label>
+              <select id="nodoEquipoId" class="form-select">
+                <option value="">— Sin vincular —</option>
+              </select>
+              <div class="form-text">Si lo vinculás, el diagrama va a mostrar siempre el nombre, la IP y el tipo de conexión (Wi-Fi / cableada) actuales de ese equipo, tomados de "Equipos / PCs" — si lo editás ahí, se actualiza acá también.</div>
+            </div>
             <div class="col-md-6">
               <label class="form-label fw-semibold">Subtítulo / hostname</label>
               <input type="text" id="nodoSubtitulo" class="form-control" placeholder="Ej: DESKTOP-ABC123">
@@ -141,6 +152,9 @@ require_once __DIR__ . '/../includes/layout_start.php';
 </div>
 
 <script>window.PUEDE_EDITAR = <?= canEdit() ? 'true' : 'false' ?>;</script>
-<script src="<?= baseUrl() ?>assets/js/diagrama.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<?php $verJs = @filemtime(__DIR__ . '/../assets/js/diagrama.js') ?: time(); ?>
+<script src="<?= baseUrl() ?>assets/js/diagrama.js?v=<?= $verJs ?>" defer></script>
 
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>

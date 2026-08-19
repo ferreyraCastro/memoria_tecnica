@@ -98,6 +98,27 @@
 .nodo-red-body { padding: .35rem .5rem .5rem; font-size: .68rem; color: #475569; }
 .nodo-red-body div { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
+.nodo-red-vinculo {
+  color: #2563eb;
+  font-size: 1rem;
+  line-height: 1;
+  padding: 2px;
+  flex-shrink: 0;
+}
+.nodo-red-vinculo:hover { color: #1d4ed8; }
+
+.badge-conexion {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: .62rem;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 999px;
+}
+.badge-wifi { background: #eff6ff; color: #2563eb; }
+.badge-eth { background: #ecfdf5; color: #059669; }
+
 .nodo-red-puertos {
   display: flex;
   flex-wrap: wrap;
@@ -118,6 +139,16 @@
 }
 .puerto-red:hover { background: #2563eb; border-color: #1d4ed8; color: #fff; }
 .puerto-red.conectando { background: #f59e0b; border-color: #b45309; color: #fff; }
+.puerto-red.puerto-conectado { background: #059669; border-color: #047857; color: #fff; }
+.puerto-red.puerto-conectado:hover { background: #2563eb; border-color: #1d4ed8; }
+.puerto-red.puerto-resaltado {
+  background: #dc2626 !important;
+  border-color: #991b1b !important;
+  color: #fff !important;
+  transform: scale(1.35);
+  box-shadow: 0 0 0 4px rgba(220,38,38,.3);
+  z-index: 5;
+}
 
 .tipo-badge-pc { background:#eff6ff; color:#2563eb; }
 .tipo-badge-switch { background:#ecfdf5; color:#059669; }
