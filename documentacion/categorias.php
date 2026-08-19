@@ -30,6 +30,21 @@ if (isset($_GET['eliminar'])) {
     redirect('categorias.php');
 }
 
+if (isset($_GET['editar']) && isset($_GET['nombre'])) {
+    $nuevoNombre = trim($_GET['nombre']);
+    if ($nuevoNombre === '') {
+        $errores[] = 'El nombre de la categoría es obligatorio.';
+    } else {
+        try {
+            $db->prepare('UPDATE categorias_documentos SET nombre = ? WHERE id = ?')->execute([$nuevoNombre, (int)$_GET['editar']]);
+            $_SESSION['flash_success'] = 'Categoría actualizada.';
+            redirect('categorias.php');
+        } catch (PDOException $e) {
+            $errores[] = 'Ya existe una categoría con ese nombre.';
+        }
+    }
+}
+
 $categorias = $db->query('SELECT c.*, (SELECT COUNT(*) FROM documentos d WHERE d.categoria_id = c.id) usados FROM categorias_documentos c ORDER BY nombre')->fetchAll();
 $flashSuccess = $_SESSION['flash_success'] ?? null; unset($_SESSION['flash_success']);
 
@@ -68,6 +83,7 @@ require_once __DIR__ . '/../includes/layout_start.php';
               <td><?= h($c['nombre']) ?></td>
               <td><?= (int)$c['usados'] ?></td>
               <td class="text-end">
+                <a href="#" onclick="return editarNombre('?editar=<?= $c['id'] ?>', '<?= htmlspecialchars(addslashes($c['nombre']), ENT_QUOTES) ?>')" class="btn btn-sm btn-outline-secondary"><i class="bi bi-pencil"></i></a>
                 <a href="#" onclick="return confirmarBorrado('?eliminar=<?= $c['id'] ?>', 'Se eliminará la categoría &quot;<?= htmlspecialchars(addslashes($c['nombre']), ENT_QUOTES) ?>&quot;.')" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></a>
               </td>
             </tr>

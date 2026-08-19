@@ -50,6 +50,12 @@ require_once __DIR__ . '/includes/layout_start.php';
     <h1>Panel principal</h1>
     <div class="subtitle">Resumen general de la memoria técnica del colegio</div>
   </div>
+  <?php if (isAdmin()): ?>
+  <div class="d-flex gap-2">
+    <a href="accesos/categorias.php" class="btn btn-outline-secondary"><i class="bi bi-tags"></i> Categorías de accesos</a>
+    <a href="documentacion/categorias.php" class="btn btn-outline-secondary"><i class="bi bi-tags"></i> Categorías de documentos</a>
+  </div>
+  <?php endif; ?>
 </div>
 
 <?php if (count($vencidas) > 0 || count($proximas) > 0): ?>

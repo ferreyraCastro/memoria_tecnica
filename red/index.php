@@ -34,9 +34,12 @@ require_once __DIR__ . '/../includes/layout_start.php';
     <h1><i class="bi bi-wifi"></i> Infraestructura de red y Wi-Fi</h1>
     <div class="subtitle">Access points, switches, routers y redes Wi-Fi del colegio</div>
   </div>
-  <?php if (canEdit()): ?>
-  <a href="crear.php" class="btn btn-brand"><i class="bi bi-plus-lg"></i> Nuevo dispositivo</a>
-  <?php endif; ?>
+  <div class="d-flex gap-2">
+    <a href="diagrama.php" class="btn btn-outline-secondary"><i class="bi bi-diagram-3"></i> Diagrama de red</a>
+    <?php if (canEdit()): ?>
+    <a href="crear.php" class="btn btn-brand"><i class="bi bi-plus-lg"></i> Nuevo dispositivo</a>
+    <?php endif; ?>
+  </div>
 </div>
 
 <div class="card-app mb-3">

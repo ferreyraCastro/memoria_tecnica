@@ -12,19 +12,33 @@ $equipo = $stmt->fetch();
 if (!$equipo) { $_SESSION['flash_error'] = 'Equipo no encontrado.'; redirect('index.php'); }
 
 $errores = [];
-$campos = ['nombre_pc','mac','ip','subred','tipo_conexion','aula','sala','piso','curso','sistema_operativo','usuario_asignado','claves_info','observaciones','estado'];
+$campos = ['nombre_pc','mac','ip','subred','tipo_conexion','aula','sala','piso','curso','sistema_operativo','usuario_asignado','anydesk_id','claves_info','observaciones','estado'];
 $form = $equipo;
+$form['anydesk_id'] = $equipo['anydesk_id'] ?? '';
+$form['anydesk_password'] = !empty($equipo['anydesk_password_cifrada'])
+    ? decryptString($equipo['anydesk_password_cifrada'], $equipo['anydesk_iv'] ?? '')
+    : '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     foreach ($campos as $c) $form[$c] = trim($_POST[$c] ?? '');
+    $form['anydesk_password'] = $_POST['anydesk_password'] ?? '';
     if ($form['nombre_pc'] === '') $errores[] = 'El nombre / identificación de la PC es obligatorio.';
 
     if (!$errores) {
-        $stmt = $db->prepare("UPDATE equipos SET nombre_pc=?, mac=?, ip=?, subred=?, tipo_conexion=?, aula=?, sala=?, piso=?, curso=?, sistema_operativo=?, usuario_asignado=?, claves_info=?, observaciones=?, estado=? WHERE id=?");
+        if ($form['anydesk_password'] !== '') {
+            $encAny = encryptString($form['anydesk_password']);
+            $anydeskCifrada = $encAny['data'];
+            $anydeskIv = $encAny['iv'];
+        } else {
+            $anydeskCifrada = null;
+            $anydeskIv = null;
+        }
+        $stmt = $db->prepare("UPDATE equipos SET nombre_pc=?, mac=?, ip=?, subred=?, tipo_conexion=?, aula=?, sala=?, piso=?, curso=?, sistema_operativo=?, usuario_asignado=?, anydesk_id=?, anydesk_password_cifrada=?, anydesk_iv=?, claves_info=?, observaciones=?, estado=? WHERE id=?");
         $stmt->execute([
             $form['nombre_pc'], $form['mac'] ?: null, $form['ip'] ?: null, $form['subred'] ?: null, $form['tipo_conexion'],
             $form['aula'] ?: null, $form['sala'] ?: null, $form['piso'] ?: null, $form['curso'] ?: null,
-            $form['sistema_operativo'] ?: null, $form['usuario_asignado'] ?: null, $form['claves_info'] ?: null,
+            $form['sistema_operativo'] ?: null, $form['usuario_asignado'] ?: null, $form['anydesk_id'] ?: null,
+            $anydeskCifrada, $anydeskIv, $form['claves_info'] ?: null,
             $form['observaciones'] ?: null, $form['estado'], $id,
         ]);
         $_SESSION['flash_success'] = 'Equipo actualizado correctamente.';

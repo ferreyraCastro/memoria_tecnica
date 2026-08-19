@@ -1,0 +1,141 @@
+.diagrama-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem;
+  align-items: center;
+  margin-bottom: .75rem;
+}
+
+.diagrama-viewport {
+  position: relative;
+  width: 100%;
+  height: 70vh;
+  overflow: auto;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: .5rem;
+}
+
+.diagrama-canvas {
+  position: relative;
+  width: 3200px;
+  height: 2200px;
+  transform-origin: 0 0;
+  background-image: radial-gradient(#dbe3ee 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+
+.diagrama-svg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.diagrama-svg .conexion-linea {
+  stroke: #2563eb;
+  stroke-width: 2.5;
+  fill: none;
+  pointer-events: stroke;
+  cursor: pointer;
+}
+.diagrama-svg .conexion-linea:hover {
+  stroke: #dc2626;
+  stroke-width: 3.5;
+}
+
+.diagrama-svg .ghost-linea {
+  stroke: #f59e0b;
+  stroke-width: 2;
+  stroke-dasharray: 6 4;
+  fill: none;
+}
+
+.nodo-red {
+  position: absolute;
+  z-index: 2;
+  width: 168px;
+  background: #ffffff;
+  border: 1.5px solid #cbd5e1;
+  border-radius: .6rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,.08);
+  user-select: none;
+  cursor: grab;
+}
+.nodo-red:active { cursor: grabbing; }
+.nodo-red.seleccionado { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,.2); }
+
+.nodo-red-header {
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+  padding: .4rem .5rem;
+  border-bottom: 1px solid #f1f5f9;
+}
+.nodo-red-icono {
+  width: 28px; height: 28px;
+  border-radius: .4rem;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  font-size: 1rem;
+}
+.nodo-red-titulo { font-size: .78rem; font-weight: 600; line-height: 1.1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nodo-red-sub { font-size: .68rem; color: #64748b; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nodo-red-editar {
+  margin-left: auto;
+  border: none;
+  background: transparent;
+  color: #64748b;
+  font-size: .8rem;
+  cursor: pointer;
+  padding: 2px 4px;
+}
+.nodo-red-editar:hover { color: #2563eb; }
+
+.nodo-red-body { padding: .35rem .5rem .5rem; font-size: .68rem; color: #475569; }
+.nodo-red-body div { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.nodo-red-puertos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: .35rem .5rem .5rem;
+  border-top: 1px dashed #e2e8f0;
+}
+.puerto-red {
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  background: #e2e8f0;
+  border: 1.5px solid #94a3b8;
+  font-size: .55rem;
+  display: flex; align-items: center; justify-content: center;
+  color: #334155;
+  cursor: crosshair;
+  flex-shrink: 0;
+}
+.puerto-red:hover { background: #2563eb; border-color: #1d4ed8; color: #fff; }
+.puerto-red.conectando { background: #f59e0b; border-color: #b45309; color: #fff; }
+
+.tipo-badge-pc { background:#eff6ff; color:#2563eb; }
+.tipo-badge-switch { background:#ecfdf5; color:#059669; }
+.tipo-badge-router { background:#fdf4ff; color:#a21caf; }
+.tipo-badge-modem { background:#fff7ed; color:#c2410c; }
+.tipo-badge-ap { background:#f0f9ff; color:#0284c7; }
+.tipo-badge-impresora { background:#f8fafc; color:#475569; }
+.tipo-badge-camara { background:#fef2f2; color:#dc2626; }
+.tipo-badge-servidor { background:#1e293b; color:#fff; }
+.tipo-badge-lector { background:#fefce8; color:#a16207; }
+.tipo-badge-conector { background:#f1f5f9; color:#334155; }
+.tipo-badge-otro { background:#f1f5f9; color:#334155; }
+
+.diagrama-leyenda {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .75rem;
+  font-size: .75rem;
+  color: #475569;
+}
+.diagrama-leyenda span i { margin-right: 3px; }

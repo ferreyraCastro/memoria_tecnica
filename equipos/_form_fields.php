@@ -59,6 +59,19 @@
     <input type="text" name="usuario_asignado" class="form-control" value="<?= h($form['usuario_asignado']) ?>">
   </div>
 
+  <div class="col-md-4">
+    <label class="form-label fw-semibold"><i class="bi bi-display"></i> Número de AnyDesk</label>
+    <input type="text" name="anydesk_id" class="form-control" value="<?= h($form['anydesk_id']) ?>" placeholder="Ej: 123 456 789">
+  </div>
+  <div class="col-md-8">
+    <label class="form-label fw-semibold"><i class="bi bi-shield-lock"></i> Contraseña de AnyDesk</label>
+    <div class="input-group">
+      <input type="password" name="anydesk_password" id="anydeskPassField" class="form-control" value="<?= h($form['anydesk_password']) ?>" placeholder="Dejar vacío si no tiene / no cambia">
+      <button type="button" class="btn btn-outline-secondary" onclick="togglePassword(this,'anydeskPassField')"><i class="bi bi-eye"></i></button>
+    </div>
+    <div class="form-text">Se guarda cifrada. Si la dejás vacía, no se registra contraseña de AnyDesk para este equipo.</div>
+  </div>
+
   <div class="col-12">
     <label class="form-label fw-semibold">Claves o información técnica asociada</label>
     <textarea name="claves_info" class="form-control" rows="2" placeholder="Contraseñas locales, BIOS, notas técnicas..."><?= h($form['claves_info']) ?></textarea>

@@ -37,6 +37,31 @@ function confirmarBorrado(url, texto) {
   return false;
 }
 
+// Edición rápida de nombre (categorías, etc.) con SweetAlert2
+function editarNombre(urlBase, nombreActual, campo) {
+  campo = campo || 'nombre';
+  Swal.fire({
+    title: 'Editar categoría',
+    input: 'text',
+    inputValue: nombreActual || '',
+    inputPlaceholder: 'Nombre de la categoría',
+    showCancelButton: true,
+    confirmButtonColor: '#2563eb',
+    cancelButtonColor: '#6b7280',
+    confirmButtonText: 'Guardar',
+    cancelButtonText: 'Cancelar',
+    inputValidator: (value) => {
+      if (!value || !value.trim()) return 'El nombre no puede estar vacío.';
+    }
+  }).then((result) => {
+    if (result.isConfirmed) {
+      const sep = urlBase.includes('?') ? '&' : '?';
+      window.location.href = urlBase + sep + campo + '=' + encodeURIComponent(result.value.trim());
+    }
+  });
+  return false;
+}
+
 // Mostrar / ocultar contraseña en campos con clase .toggle-password
 function togglePassword(btn, targetId) {
   const field = document.getElementById(targetId);

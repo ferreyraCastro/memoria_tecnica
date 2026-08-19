@@ -96,6 +96,9 @@ CREATE TABLE equipos (
   curso VARCHAR(100) NULL,
   sistema_operativo VARCHAR(100) NULL,
   usuario_asignado VARCHAR(150) NULL,
+  anydesk_id VARCHAR(50) NULL,
+  anydesk_password_cifrada TEXT NULL,
+  anydesk_iv VARCHAR(64) NULL,
   claves_info TEXT NULL,
   observaciones TEXT NULL,
   estado ENUM('activo','en_reparacion','de_baja') NOT NULL DEFAULT 'activo',
@@ -128,6 +131,36 @@ CREATE TABLE red_dispositivos (
   observaciones TEXT NULL,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB;
+
+-- ---------------------------------------------------------
+-- 4b. Diagrama de red interactivo (nodos y conexiones)
+-- ---------------------------------------------------------
+CREATE TABLE red_nodos (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  tipo ENUM('pc','switch','router','modem','ap','impresora','camara','servidor','lector','conector','otro') NOT NULL DEFAULT 'otro',
+  nombre VARCHAR(150) NOT NULL,
+  subtitulo VARCHAR(150) NULL,
+  ip VARCHAR(50) NULL,
+  grupo VARCHAR(100) NULL,
+  info_extra TEXT NULL,
+  num_puertos INT NOT NULL DEFAULT 1,
+  pos_x INT NOT NULL DEFAULT 100,
+  pos_y INT NOT NULL DEFAULT 100,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB;
+
+CREATE TABLE red_conexiones (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  nodo_origen_id INT NOT NULL,
+  puerto_origen INT NOT NULL DEFAULT 1,
+  nodo_destino_id INT NOT NULL,
+  puerto_destino INT NOT NULL DEFAULT 1,
+  etiqueta VARCHAR(100) NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (nodo_origen_id) REFERENCES red_nodos(id) ON DELETE CASCADE,
+  FOREIGN KEY (nodo_destino_id) REFERENCES red_nodos(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
 -- ---------------------------------------------------------

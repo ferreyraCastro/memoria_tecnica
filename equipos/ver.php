@@ -54,6 +54,29 @@ require_once __DIR__ . '/../includes/layout_start.php';
           <div class="col-md-4"><div class="text-secondary small">Curso / división</div><div class="fw-semibold"><?= h($equipo['curso'] ?: '-') ?></div></div>
           <div class="col-md-4"><div class="text-secondary small">Sistema operativo</div><div class="fw-semibold"><?= h($equipo['sistema_operativo'] ?: '-') ?></div></div>
           <div class="col-md-4"><div class="text-secondary small">Usuario asignado</div><div class="fw-semibold"><?= h($equipo['usuario_asignado'] ?: '-') ?></div></div>
+          <?php if (canEdit() && ($equipo['anydesk_id'] || $equipo['anydesk_password_cifrada'])): ?>
+          <div class="col-md-4">
+            <div class="text-secondary small"><i class="bi bi-display"></i> Número de AnyDesk</div>
+            <div class="fw-semibold">
+              <?= h($equipo['anydesk_id'] ?: '-') ?>
+              <?php if ($equipo['anydesk_id']): ?>
+              <button class="btn btn-sm btn-link p-0 ms-1" title="Copiar número" onclick="copiarTexto('<?= htmlspecialchars(addslashes($equipo['anydesk_id']), ENT_QUOTES) ?>')"><i class="bi bi-clipboard"></i></button>
+              <?php endif; ?>
+            </div>
+          </div>
+          <?php if ($equipo['anydesk_password_cifrada']):
+            $anydeskPlain = decryptString($equipo['anydesk_password_cifrada'], $equipo['anydesk_iv']);
+          ?>
+          <div class="col-md-4">
+            <div class="text-secondary small"><i class="bi bi-shield-lock"></i> Contraseña de AnyDesk</div>
+            <div class="d-flex align-items-center gap-1">
+              <input type="password" readonly id="anydeskPassView" value="<?= h($anydeskPlain) ?>" class="form-control form-control-sm password-field" style="width:150px;">
+              <button type="button" class="btn btn-sm btn-outline-secondary" onclick="togglePassword(this, 'anydeskPassView')"><i class="bi bi-eye"></i></button>
+              <button type="button" class="btn btn-sm btn-outline-secondary" onclick="copiarTexto('<?= htmlspecialchars(addslashes($anydeskPlain), ENT_QUOTES) ?>')" title="Copiar contraseña"><i class="bi bi-clipboard"></i></button>
+            </div>
+          </div>
+          <?php endif; ?>
+          <?php endif; ?>
           <?php if ($equipo['claves_info']): ?>
           <div class="col-12"><div class="text-secondary small">Claves / información técnica</div><div class="fw-semibold" style="white-space:pre-wrap;"><?= h($equipo['claves_info']) ?></div></div>
           <?php endif; ?>
